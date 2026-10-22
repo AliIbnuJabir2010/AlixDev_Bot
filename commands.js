@@ -8,6 +8,7 @@
 const fs = require('fs')
 const os = require('os')
 const { Sticker, StickerTypes } = require('wa-sticker-formatter')
+const sharp = require('sharp')
 const { makeBrat } = require('./lib/brat')
 const { renderIphoneChat } = require('./lib/iphonechat')
 const { renderUstad } = require('./lib/ustad')
@@ -139,7 +140,7 @@ module.exports = function createCommands({ config, downloadMedia, fetchFn = fetc
         `◦ Dev : ${config.developer}\n\n` +
         box('MAINMENU', [`${p}menu`, `${p}info`]) + '\n\n' +
         box('DOWNLOADER', [`${p}dl <link tiktok>`, `${p}dls <link tiktok>`]) + '\n\n' +
-        box('TOOLSMENU', [`${p}rvo`, `${p}s`, `${p}brat <teks>`, `${p}iphone <teks>`, `${p}ustad <kata>`]) + '\n\n' +
+        box('TOOLSMENU', [`${p}rvo`, `${p}s`, `${p}toimg`, `${p}brat <teks>`, `${p}iphone <teks>`, `${p}ustad <kata>`]) + '\n\n' +
         wm
 
       if (fs.existsSync(config.menuImage)) {
@@ -258,6 +259,26 @@ module.exports = function createCommands({ config, downloadMedia, fetchFn = fetc
     },
   }
 
+
+  // ===== .toimg → stiker jadi foto (reply stikernya) =====
+  commands.toimg = async (sock, msg) => {
+    const media = pickMedia(msg, ['stickerMessage'])
+    if (!media) return reply(sock, msg, { text: `Reply stikernya pake ${p}toimg\n\n${wm}` })
+
+    await react(sock, msg, '⏳')
+    const buffer = await downloadMedia(sock, media.holder)
+
+    // Latar transparan diberi warna putih (kalau tidak, di WA jadi hitam).
+    // Stiker animasi: yang diambil frame pertamanya.
+    const image = await sharp(buffer)
+      .flatten({ background: '#FFFFFF' })
+      .png()
+      .toBuffer()
+
+    const note = media.node.isAnimated ? 'Stikernya animasi, jadi yang diambil frame pertama aja ya.\n\n' : ''
+    await reply(sock, msg, { image, caption: `${note}${wm}` })
+    await react(sock, msg, '✅')
+  }
 
   // ===== .iphone <teks> | <jam> → tampilan chat iPhone dengan teks bebas =====
   commands.iphone = async (sock, msg, args) => {

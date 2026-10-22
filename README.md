@@ -6,6 +6,6 @@ WhatsApp bot simpel — © Ali Ibnu Jabir
 npm install
 npm start
 ```
-Perintah: `.menu` `.info` `.dl <link>` `.dls <link>` `.rvo` `.s` `.brat <teks>` `.iphone <teks> | <jam>` `.ustad <kata>`
+Perintah: `.menu` `.info` `.dl <link>` `.dls <link>` `.rvo` `.s` `.toimg` `.brat <teks>` `.iphone <teks> | <jam>` `.ustad <kata>`
 
 Lisensi: lihat `LICENSE`. Dilarang edit/jual tanpa izin pemilik.

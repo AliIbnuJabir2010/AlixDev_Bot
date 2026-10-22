@@ -45,7 +45,7 @@ for (const fn of ['log', 'info', 'warn', 'error']) {
 // ---------- KONFIGURASI ----------
 const config = {
   botName: 'AlixDev',
-  version: '1.6.1',
+  version: '1.7.2',
   prefix: '.',
   watermark: 'Ali Ibnu Jabir',
   developer: 'Ali Ibnu Jabir',
@@ -55,13 +55,29 @@ const config = {
 
 // ---------- PENGECEK KREDIT (integrity) ----------
 const WM_HASH = '6f8adecc7e50cc3796ec6cf07e13afed791c200f0f0473ddf7397f8de6782190'
+const LICENSE_HASH = '1f1d4deb95d91310597e4cd6839cea19b91a304a92deb70a72c8004ba226ccb2'
+// File sumber yang wajib tetap memuat kredit pemilik
+const CREDIT_FILES = ['index.js', 'commands.js', 'lib/brat.js', 'lib/iphonechat.js', 'lib/ustad.js']
 function checkCredit() {
-  const h = crypto.createHash('sha256').update(config.watermark).digest('hex')
-  const license = fs.existsSync(path.join(__dirname, 'LICENSE'))
-  if (h !== WM_HASH || !license) {
-    console.error('⛔ Kredit developer / LICENSE dihapus atau diubah. Bot dihentikan.')
+  const stop = (why) => {
+    console.error('⛔ ' + why + ' Bot dihentikan.')
     console.error('   Hubungi pemilik asli: Ali Ibnu Jabir')
     process.exit(1)
+  }
+  const h = crypto.createHash('sha256').update(config.watermark).digest('hex')
+  if (h !== WM_HASH) return stop('Kredit developer diubah.')
+
+  // isi LICENSE dikunci (CRLF dinormalkan ke LF supaya aman dari konversi Git/Windows)
+  let lic = null
+  try { lic = fs.readFileSync(path.join(__dirname, 'LICENSE'), 'utf8').replace(/\r\n/g, '\n') } catch {}
+  if (lic === null) return stop('LICENSE dihapus.')
+  if (crypto.createHash('sha256').update(lic).digest('hex') !== LICENSE_HASH) return stop('Isi LICENSE diubah.')
+
+  // header kredit di tiap file sumber tidak boleh dihapus
+  for (const f of CREDIT_FILES) {
+    let src = ''
+    try { src = fs.readFileSync(path.join(__dirname, f), 'utf8') } catch {}
+    if (!src.includes('Ali Ibnu Jabir')) return stop('Header kredit di ' + f + ' dihapus.')
   }
 }
 
