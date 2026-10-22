@@ -45,7 +45,7 @@ for (const fn of ['log', 'info', 'warn', 'error']) {
 // ---------- KONFIGURASI ----------
 const config = {
   botName: 'AlixDev',
-  version: '1.2.0',
+  version: '1.6.1',
   prefix: '.',
   watermark: 'Ali Ibnu Jabir',
   developer: 'Ali Ibnu Jabir',
@@ -103,6 +103,17 @@ let commands = null
 function getText(m) {
   const c = m.message
   if (!c) return ''
+
+  // klik tombol = sama dengan mengetik perintah yang ditempel di tombol itu
+  const btn =
+    c.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson ||
+    c.buttonsResponseMessage?.selectedButtonId ||
+    c.templateButtonReplyMessage?.selectedId ||
+    c.listResponseMessage?.singleSelectReply?.selectedRowId
+  if (btn) {
+    try { return String(JSON.parse(btn).id || '') } catch { return String(btn) }
+  }
+
   return (
     c.conversation ||
     c.extendedTextMessage?.text ||
@@ -231,7 +242,7 @@ async function start() {
         markProcessed(id)
 
         const text = getText(msg).trim()
-        if (!text.startsWith(config.prefix)) continue
+        if (!text.startsWith(config.prefix)) continue // hanya respon perintah
 
         const [first, ...args] = text.slice(config.prefix.length).split(/\s+/)
         const cmd = first.toLowerCase()
@@ -258,7 +269,10 @@ async function start() {
 ;(async () => {
   checkCredit()
   await loadBaileys()
-  commands = createCommands({
+  if (!require('./lib/brat').emojiReady) {
+    console.log('⚠️  Paket emoji belum ke-install, emoji di .brat dilewati. Jalankan: npm i')
+  }
+  const bot = createCommands({
     config,
     startedAt,
     downloadMedia: (sock, holder) =>
@@ -267,6 +281,7 @@ async function start() {
         reuploadRequest: sock.updateMediaMessage,
       }),
   })
+  commands = bot.commands
   await welcome()
   await start()
 })()

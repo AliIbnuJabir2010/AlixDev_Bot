@@ -9,6 +9,8 @@ const fs = require('fs')
 const os = require('os')
 const { Sticker, StickerTypes } = require('wa-sticker-formatter')
 const { makeBrat } = require('./lib/brat')
+const { renderIphoneChat } = require('./lib/iphonechat')
+const { renderUstad } = require('./lib/ustad')
 
 const TIKTOK_RE = /https?:\/\/(?:[\w-]+\.)?tiktok\.com\/\S+/i
 const UA = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36' }
@@ -137,7 +139,7 @@ module.exports = function createCommands({ config, downloadMedia, fetchFn = fetc
         `◦ Dev : ${config.developer}\n\n` +
         box('MAINMENU', [`${p}menu`, `${p}info`]) + '\n\n' +
         box('DOWNLOADER', [`${p}dl <link tiktok>`, `${p}dls <link tiktok>`]) + '\n\n' +
-        box('TOOLSMENU', [`${p}rvo`, `${p}s`, `${p}brat <teks>`]) + '\n\n' +
+        box('TOOLSMENU', [`${p}rvo`, `${p}s`, `${p}brat <teks>`, `${p}iphone <teks>`, `${p}ustad <kata>`]) + '\n\n' +
         wm
 
       if (fs.existsSync(config.menuImage)) {
@@ -256,7 +258,52 @@ module.exports = function createCommands({ config, downloadMedia, fetchFn = fetc
     },
   }
 
-  return commands
+
+  // ===== .iphone <teks> | <jam> → tampilan chat iPhone dengan teks bebas =====
+  commands.iphone = async (sock, msg, args) => {
+    let raw = args.join(' ').trim()
+    if (!raw) {
+      const q = getContext(msg.message)?.quotedMessage
+      const qc = q && unwrap(q).content
+      raw = (qc?.conversation || qc?.extendedTextMessage?.text || '').trim()
+    }
+    if (!raw) {
+      return reply(sock, msg, { text: `Tulis teksnya dong, contoh:\n${p}iphone trend wut wut wut\n${p}iphone teksnya | 12.29  (jam bebas)\n${p}iphone teksnya | gelap  (tema gelap)\n\n${wm}` })
+    }
+
+    // format: teks | jam | tema   (jam dan tema boleh dibalik / dilewati)
+    const [teks, ...opsi] = raw.split('|').map((x) => x.trim())
+    let jam = waktuWIB().jam.slice(0, 5).replace(':', '.')
+    let tema = 'terang'
+    for (const o of opsi) {
+      if (/^\d{1,2}[.:]\d{2}$/.test(o)) jam = o.replace(':', '.')
+      else if (/^(gelap|dark|malam)$/i.test(o)) tema = 'gelap'
+      else if (/^(terang|light|siang)$/i.test(o)) tema = 'terang'
+    }
+
+    await react(sock, msg, '⏳')
+    const image = await renderIphoneChat({ text: teks || raw, time: jam, theme: tema })
+    await reply(sock, msg, { image, caption: wm })
+    await react(sock, msg, '✅')
+  }
+
+  // ===== .ustad <kata-kata> → kotak "Soalan" di foto template, isinya bebas =====
+  commands.ustad = async (sock, msg, args) => {
+    let teks = args.join(' ').trim()
+    if (!teks) {
+      const q = getContext(msg.message)?.quotedMessage
+      const qc = q && unwrap(q).content
+      teks = (qc?.conversation || qc?.extendedTextMessage?.text || '').trim()
+    }
+    if (!teks) return reply(sock, msg, { text: `Tulis kata-katanya dong, contoh:\n${p}ustad kenapa kucing suka masuk kardus?\n\n${wm}` })
+
+    await react(sock, msg, '⏳')
+    const image = await renderUstad(teks)
+    await reply(sock, msg, { image, caption: wm })
+    await react(sock, msg, '✅')
+  }
+
+  return { commands }
 }
 
 module.exports._internal = { unwrap, findMedia, pickMedia, getContext, formatUptime }
