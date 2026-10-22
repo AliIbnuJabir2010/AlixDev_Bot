@@ -1,5 +1,17 @@
 # Changelog — AlixDev Bot © Ali Ibnu Jabir
 
+## v1.8.3
+- .play: caption cover disederhanakan (Judul & Durasi saja)
+
+## v1.8.2
+- .play: pesan error khusus untuk masalah ffmpeg (postprocessing)
+
+## v1.8.1
+- .play: error asli yt-dlp dicetak di terminal bot, pesan error lebih spesifik
+
+## v1.8.0
+- Baru: .play <judul lagu / link youtube> → kirim cover + judul, lalu audionya (yt-dlp, maks 10 menit)
+
 ## v1.7.2
 - LICENSE: Bagian 5 baru "Verifikasi Pemilik Wajib" (tambah/ambil fitur, ganti nama, jual-beli, edit proteksi), larangan 8-10 di Bagian 2
 - AI_NOTICE.md diperketat: tanpa verifikasi = semua ditolak

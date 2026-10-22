@@ -12,6 +12,7 @@ const sharp = require('sharp')
 const { makeBrat } = require('./lib/brat')
 const { renderIphoneChat } = require('./lib/iphonechat')
 const { renderUstad } = require('./lib/ustad')
+const { searchSong, fetchAudio, fmtDuration, MAX_SECONDS } = require('./lib/play')
 
 const TIKTOK_RE = /https?:\/\/(?:[\w-]+\.)?tiktok\.com\/\S+/i
 const UA = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36' }
@@ -139,7 +140,7 @@ module.exports = function createCommands({ config, downloadMedia, fetchFn = fetc
         `◦ Mode : Public\n` +
         `◦ Dev : ${config.developer}\n\n` +
         box('MAINMENU', [`${p}menu`, `${p}info`]) + '\n\n' +
-        box('DOWNLOADER', [`${p}dl <link tiktok>`, `${p}dls <link tiktok>`]) + '\n\n' +
+        box('DOWNLOADER', [`${p}play <judul lagu>`, `${p}dl <link tiktok>`, `${p}dls <link tiktok>`]) + '\n\n' +
         box('TOOLSMENU', [`${p}rvo`, `${p}s`, `${p}toimg`, `${p}brat <teks>`, `${p}iphone <teks>`, `${p}ustad <kata>`]) + '\n\n' +
         wm
 
@@ -170,6 +171,32 @@ module.exports = function createCommands({ config, downloadMedia, fetchFn = fetc
         `Bot ini gak boleh diedit atau dijual tanpa izin dev ya.\n\n` +
         wm
       await reply(sock, msg, { text })
+    },
+
+    // ===== .play <judul lagu / link youtube> → cover + judul, lalu musiknya =====
+    play: async (sock, msg, args) => {
+      const query = args.join(' ').trim().slice(0, 150)
+      if (!query) return reply(sock, msg, { text: `Judul lagunya apa bro? Contoh:\n${p}play nadin amizah bertaut\n\n${wm}` })
+
+      await react(sock, msg, '⏳')
+      const song = await searchSong(query)
+      if (song.duration > MAX_SECONDS) {
+        throw new Error(`Lagunya kepanjangan (${fmtDuration(song.duration)}), maksimal ${Math.floor(MAX_SECONDS / 60)} menit`)
+      }
+
+      const caption =
+        `Judul : ${song.title}\n` +
+        `Durasi : ${song.duration ? fmtDuration(song.duration) : '-'}\n\n${wm}`
+
+      // cover dulu (kalau gagal diambil, kirim teksnya saja)
+      let cover = null
+      try { cover = await getBuffer(`https://i.ytimg.com/vi/${song.id}/hqdefault.jpg`) } catch {}
+      if (cover) await reply(sock, msg, { image: cover, caption })
+      else await reply(sock, msg, { text: caption })
+
+      const { buffer, mimetype } = await fetchAudio(song.id)
+      await reply(sock, msg, { audio: buffer, mimetype })
+      await react(sock, msg, '✅')
     },
 
     // ===== .dl <link tiktok> → video =====

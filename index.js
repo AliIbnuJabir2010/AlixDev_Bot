@@ -45,7 +45,7 @@ for (const fn of ['log', 'info', 'warn', 'error']) {
 // ---------- KONFIGURASI ----------
 const config = {
   botName: 'AlixDev',
-  version: '1.7.2',
+  version: '1.8.3',
   prefix: '.',
   watermark: 'Ali Ibnu Jabir',
   developer: 'Ali Ibnu Jabir',
@@ -57,7 +57,7 @@ const config = {
 const WM_HASH = '6f8adecc7e50cc3796ec6cf07e13afed791c200f0f0473ddf7397f8de6782190'
 const LICENSE_HASH = '1f1d4deb95d91310597e4cd6839cea19b91a304a92deb70a72c8004ba226ccb2'
 // File sumber yang wajib tetap memuat kredit pemilik
-const CREDIT_FILES = ['index.js', 'commands.js', 'lib/brat.js', 'lib/iphonechat.js', 'lib/ustad.js']
+const CREDIT_FILES = ['index.js', 'commands.js', 'lib/brat.js', 'lib/iphonechat.js', 'lib/ustad.js', 'lib/play.js']
 function checkCredit() {
   const stop = (why) => {
     console.error('⛔ ' + why + ' Bot dihentikan.')
