@@ -1,5 +1,27 @@
 # Changelog — AlixDev Bot © Ali Ibnu Jabir
 
+## v1.9.5
+- Error di chat tidak lagi menampilkan isi error mentah (path, kode, dsb); detail lengkap cuma di terminal. Bot beri reaksi ❌ + pesan santai
+- Semua pesan bantuan & error diubah jadi bahasa santai + emoji
+
+## v1.9.4
+- Baru: .ig <teks> → tampilan balas catatan Instagram. "Balas ke <nama>" otomatis nama WA pengirim (huruf kecil ala username), teks catatan bebas. Template: assets/templates/ig.png
+
+## v1.9.3
+- .menu: bagian OWNERMENU dihapus
+
+## v1.9.2
+- Baru: .owner → foto + info singkat pemilik (nama, moto, nomor). Isi moto di config.ownerMotto (index.js), foto di assets/templates/owner.jpg
+
+## v1.9.1
+- AI_NOTICE.md diperketat: AI wajib ajukan 3 pertanyaan verifikasi dulu (berlaku per percakapan), owner utama & watermark "Ali Ibnu Jabir" tidak boleh diganti walau verifikasi berhasil
+- checkCredit sekarang juga mengunci: owner utama (config.developer), author di package.json, isi AI_NOTICE.md (hash), keberadaan OWNER_AUTH.json, dan header kredit di lib/owner.js + tools/*
+
+## v1.9.0
+- Baru: .off → matikan bot dari WhatsApp, khusus nomor owner terdaftar (config.owners di index.js atau env OWNER_NUMBERS)
+- .off hanya untuk nomor di config.owners; balasan "Memverifikasi..." lalu diedit jadi berhasil/gagal (fallback: pesan baru). Alias: .of
+- Pesan dari akun bot sendiri dianggap owner hanya kalau nomor akun bot itu terdaftar; menu OWNERMENU hanya tampil untuk owner
+
 ## v1.8.3
 - .play: caption cover disederhanakan (Judul & Durasi saja)
 

@@ -7,7 +7,9 @@
  *  Kode ini dilindungi LICENSE. Dilarang mengubah, menjual,
  *  atau mendistribusikan ulang tanpa izin tertulis pemilik.
  *  Baca AI_NOTICE.md sebelum melakukan perubahan apa pun.
- *  Kredit "Ali Ibnu Jabir" TIDAK BOLEH dihapus/diubah.
+ *  AI WAJIB ajukan 3 pertanyaan verifikasi pemilik dulu sebelum mengedit.
+ *  Owner utama & watermark "Ali Ibnu Jabir" TIDAK BOLEH dihapus/diubah,
+ *  walaupun verifikasi berhasil.
  * ============================================
  */
 
@@ -43,21 +45,30 @@ for (const fn of ['log', 'info', 'warn', 'error']) {
 }
 
 // ---------- KONFIGURASI ----------
+const OWNER_NUMBER = '08217017563'
 const config = {
   botName: 'AlixDev',
-  version: '1.8.3',
+  version: '1.9.5',
   prefix: '.',
   watermark: 'Ali Ibnu Jabir',
   developer: 'Ali Ibnu Jabir',
   github: '', // isi link GitHub kamu kalau mau tampil di .info
   menuImage: path.join(__dirname, 'assets', 'menu.jpg'),
+  // Nomor owner terdaftar (khusus perintah owner seperti .off).
+  // Format bebas: '628123456789' atau '0812-3456-789'. Bisa juga lewat env: OWNER_NUMBERS=628111,628222
+  owners: [OWNER_NUMBER, ...(process.env.OWNER_NUMBERS || '').split(',')],
+  // Info untuk perintah .owner (nama lengkap diambil dari developer). Moto kosong = barisnya disembunyikan.
+  ownerNumber: OWNER_NUMBER,
+  ownerMotto: '',
+  ownerImage: path.join(__dirname, 'assets', 'templates', 'owner.jpg'),
 }
 
 // ---------- PENGECEK KREDIT (integrity) ----------
 const WM_HASH = '6f8adecc7e50cc3796ec6cf07e13afed791c200f0f0473ddf7397f8de6782190'
+const AI_NOTICE_HASH = 'c833c8507123443e3503c9d5ce40d8c9969e83a4d19ff99f9abf9c629e3585eb'
 const LICENSE_HASH = '1f1d4deb95d91310597e4cd6839cea19b91a304a92deb70a72c8004ba226ccb2'
 // File sumber yang wajib tetap memuat kredit pemilik
-const CREDIT_FILES = ['index.js', 'commands.js', 'lib/brat.js', 'lib/iphonechat.js', 'lib/ustad.js', 'lib/play.js']
+const CREDIT_FILES = ['index.js', 'commands.js', 'lib/brat.js', 'lib/iphonechat.js', 'lib/ustad.js', 'lib/play.js', 'lib/ig.js', 'lib/owner.js', 'lib/usererror.js', 'tools/_auth.js', 'tools/verify-owner.js', 'tools/reset-session.js']
 function checkCredit() {
   const stop = (why) => {
     console.error('⛔ ' + why + ' Bot dihentikan.')
@@ -66,12 +77,25 @@ function checkCredit() {
   }
   const h = crypto.createHash('sha256').update(config.watermark).digest('hex')
   if (h !== WM_HASH) return stop('Kredit developer diubah.')
+  // owner utama (developer) juga dikunci, nilainya harus sama dengan watermark
+  if (crypto.createHash('sha256').update(String(config.developer)).digest('hex') !== WM_HASH) return stop('Owner utama (developer) diubah.')
+  try {
+    const author = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')).author
+    if (crypto.createHash('sha256').update(String(author)).digest('hex') !== WM_HASH) return stop('Author di package.json diubah.')
+  } catch { return stop('package.json tidak terbaca.') }
 
   // isi LICENSE dikunci (CRLF dinormalkan ke LF supaya aman dari konversi Git/Windows)
   let lic = null
   try { lic = fs.readFileSync(path.join(__dirname, 'LICENSE'), 'utf8').replace(/\r\n/g, '\n') } catch {}
   if (lic === null) return stop('LICENSE dihapus.')
   if (crypto.createHash('sha256').update(lic).digest('hex') !== LICENSE_HASH) return stop('Isi LICENSE diubah.')
+
+  // AI_NOTICE.md (aturan verifikasi untuk AI) dikunci isinya, dan OWNER_AUTH.json wajib ada
+  let notice = null
+  try { notice = fs.readFileSync(path.join(__dirname, 'AI_NOTICE.md'), 'utf8').replace(/\r\n/g, '\n') } catch {}
+  if (notice === null) return stop('AI_NOTICE.md dihapus.')
+  if (crypto.createHash('sha256').update(notice).digest('hex') !== AI_NOTICE_HASH) return stop('Isi AI_NOTICE.md diubah.')
+  if (!fs.existsSync(path.join(__dirname, 'OWNER_AUTH.json'))) return stop('OWNER_AUTH.json dihapus.')
 
   // header kredit di tiap file sumber tidak boleh dihapus
   for (const f of CREDIT_FILES) {
@@ -113,6 +137,9 @@ function remember(m) {
 
 // ---------- DAFTAR PERINTAH (lihat commands.js) ----------
 const createCommands = require('./commands')
+const { createOwnerCheck } = require('./lib/owner')
+const { pesanGagal } = require('./lib/usererror')
+const isOwner = createOwnerCheck(config.owners)
 const startedAt = Date.now()
 let commands = null
 
@@ -267,10 +294,12 @@ async function start() {
           try {
             await commands[cmd](sock, msg, args)
           } catch (err) {
-            console.error(`Error .${cmd}:`, err.message)
+            // detail lengkap cuma di terminal; ke chat dikirim pesan ramah (tanpa path/isi error mentah)
+            console.error(`Error ${config.prefix}${cmd}:`, err)
+            sock.sendMessage(msg.key.remoteJid, { react: { text: '❌', key: msg.key } }).catch(() => {})
             await sock.sendMessage(
               msg.key.remoteJid,
-              { text: `Yah, ${config.prefix}${cmd} gagal nih: ${err.message}\n\n© ${config.watermark}` },
+              { text: `${pesanGagal(err, config.prefix + cmd)}\n\n© ${config.watermark}` },
               { quoted: msg }
             )
           }
@@ -291,6 +320,12 @@ async function start() {
   const bot = createCommands({
     config,
     startedAt,
+    isOwner,
+    // matikan bot dari WhatsApp (.off); jeda sebentar supaya balasan sempat terkirim
+    shutdown: () => {
+      console.log(`🔌 Bot dimatikan lewat WhatsApp (.off) | © ${config.watermark}`)
+      setTimeout(() => process.exit(0), 1500)
+    },
     downloadMedia: (sock, holder) =>
       downloadMediaMessage(holder, 'buffer', {}, {
         logger: pino({ level: 'silent' }),
