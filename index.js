@@ -143,6 +143,9 @@ const isOwner = createOwnerCheck(config.owners)
 const startedAt = Date.now()
 let commands = null
 
+// Game Undercover (modul terpisah: lib/undercover.js). Memakai socket bot yang sama.
+const undercover = require('./lib/undercover')({})
+
 function getText(m) {
   const c = m.message
   if (!c) return ''
@@ -217,7 +220,7 @@ async function start() {
     browser: Browsers.ubuntu('Chrome'),
     syncFullHistory: false,
     markOnlineOnConnect: false, // biar notifikasi tetap masuk ke HP
-    getMessage: async (key) => msgStore.get(key.id),
+    getMessage: async (key) => msgStore.get(key.id) || undercover.getStoredMessage(key),
   })
 
   connectedAt = Infinity // tunggu sampai koneksi open
@@ -227,6 +230,7 @@ async function start() {
   sock.sendMessage = async (...a) => {
     const res = await rawSend(...a)
     remember(res)
+    undercover.noteSent(res)
     return res
   }
 
@@ -265,6 +269,11 @@ async function start() {
     }
   })
 
+  // suara polling Undercover
+  sock.ev.on('messages.update', (updates) => {
+    undercover.handlePollUpdates(sock, updates).catch((e) => console.error('Error polling:', e.message))
+  })
+
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     // 'notify' = pesan baru; 'append' hanya dipakai untuk pesan dari nomor bot sendiri
     if (type !== 'notify' && type !== 'append') return
@@ -283,6 +292,8 @@ async function start() {
         const id = msg.key.id
         if (processed.has(id)) continue
         markProcessed(id)
+
+        undercover.handleMessage(sock, msg) // game Undercover (#uc...), tidak pernah melempar error
 
         const text = getText(msg).trim()
         if (!text.startsWith(config.prefix)) continue // hanya respon perintah

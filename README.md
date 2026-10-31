@@ -16,3 +16,8 @@ Butuh `yt-dlp` terpasang (`yt-dlp --version`). Opsional (variabel lingkungan): `
 
 ## Owner (.off)
 Isi nomor owner di `config.owners` (index.js), atau lewat env `OWNER_NUMBERS=628111,628222`. Kalau bot dijalankan lewat pm2/nodemon, proses akan dinyalakan lagi otomatis setelah `.off`.
+
+## Game Undercover (grup)
+Modul terpisah: `lib/undercover.js` (logika) + `lib/undercover-words.js` (daftar pasangan kata).
+Perintah (prefix `#`): `#ucjoin` `#ucstart` `#ucstop` (host) `#uckick <nomor>` (host, untuk pemain yang macet).
+Voting hanya lewat polling WhatsApp. Uji simulasi: `node tests/undercover.sim.js`
